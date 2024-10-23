@@ -2,7 +2,7 @@ import os
 import shutil
 import json
 
-base_paths = ["./Code-Release/flame_steak"]
+base_paths = ["./output/coffee_martini"]
 
 for base_path in base_paths:
     frame_folders = sorted([f for f in os.listdir(base_path) if f.startswith('frame') and os.path.isdir(os.path.join(base_path, f))])
@@ -10,7 +10,7 @@ for base_path in base_paths:
     with open(os.path.join(base_path,'cfg_args.json'), 'r') as f:
         cfg_args = json.load(f)
     ntc_conf_path=cfg_args['ntc_conf_path']
-    init_3dg_path=os.path.join(cfg_args['model_path'], 'point_cloud', f'iteration_{cfg_args['first_load_iteration']}', 'point_cloud.ply')
+    init_3dg_path=os.path.join(cfg_args['model_path'], 'point_cloud', f"iteration_{cfg_args['first_load_iteration']}", 'point_cloud.ply')
     
     ntcs_path = os.path.join(base_path, 'NTCs')
     addition_3dgs_path = os.path.join(base_path, 'additional_3dgs')

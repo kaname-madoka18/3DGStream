@@ -127,12 +127,13 @@ def training_one_frame(dataset, opt, pipe, load_iteration, testing_iterations, s
                 torch.save((gaussians.capture(), iteration), scene.output_path + "/chkpnt" + str(iteration) + ".pth")
 
     s1_end_time=time.time()
+    # Dump the NTC
+    scene.dump_NTC()
+    # Update Gaussians by NTC
+    gaussians.update_by_ntc()
     # Densify
     if(opt.iterations_s2>0):
-    # Dump the NTC
-        scene.dump_NTC()
-    # Update Gaussians by NTC
-        gaussians.update_by_ntc()
+
     # Prune, Clone and setting up  
         gaussians.training_one_frame_s2_setup(opt)
         progress_bar = tqdm(range(opt.iterations, opt.iterations + opt.iterations_s2), desc="Training progress of Stage 2")    
@@ -234,8 +235,9 @@ def training_report(tb_writer, iteration, Ll1, Lds, loss, l1_loss, elapsed, test
     # Report test and samples of training set
     if iteration in testing_iterations:
         torch.cuda.empty_cache()
-        validation_configs = ({'name': 'test', 'cameras' : scene.getTestCameras()}, 
-                            #   {'name': 'train', 'cameras' : [scene.getTrainCameras()[idx % len(scene.getTrainCameras())] for idx in range(5, 30, 5)]}
+        validation_configs = (
+            # {'name': 'test', 'cameras' : scene.getTestCameras()},
+                              {'name': 'test', 'cameras' : [scene.getTrainCameras()[idx % len(scene.getTrainCameras())] for idx in range(5, 30, 5)]},
                               )
 
         for config in validation_configs:
