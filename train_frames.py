@@ -31,6 +31,34 @@ try:
 except ImportError:
     TENSORBOARD_FOUND = False
 
+def motion_est(gaussians, viewpoints, opt_flows):
+    xyzs = gaussians.get_xyz
+    N, _ = xyzs.shape
+    XTY = torch.zeros((N, 3), device=xyzs.device, dtype=xyzs.dtype)
+    XTX = torch.zeros((N,2,3),device=xyzs.device, dtype=xyzs.dtype)
+    motion3d = torch.zeros_like(XTY)
+    mask_all = torch.zeros((N,), device=xyzs.device, dtype=torch.bool)
+    for viewpoint, opt_flow in zip(viewpoints, opt_flows):
+        # TODO
+        visible_mask = None
+        mask_all |= visible_mask
+
+        T_mat = viewpoint.full_proj_transform.T
+        A,B,C,D = T_mat[:3,:3], T_mat[:3,3], T_mat[3,3], T_mat[3,:3]
+        masked_xyzs = xyzs[visible_mask]
+        tmp = masked_xyzs@D.T+C
+        T_mat_motion = (tmp.reshape((-1,1,1))*A - (masked_xyzs@A.T+B.T).reshape((-1,3,1))@D.reshape((1,3)) )/(tmp*tmp)
+        XTX[visible_mask] += T_mat_motion[:,:2,:].permute(0,2,1).bmm(T_mat_motion[:,:2,:])
+
+        proj_xyzs = (xyzs @ T_mat.T).to(torch.int64)
+        XTY[visible_mask] \
+            += T_mat_motion[:,:2,:].permute(0,2,1).bmm(
+            opt_flow[proj_xyzs[visible_mask,0], proj_xyzs[visible_mask,1]].reshape((-1,2,1)))
+
+    motion3d[mask_all] = torch.linalg.solve(XTX[mask_all], XTY[mask_all].reshape((-1,3)))
+    return motion3d
+
+
 def training_one_frame(dataset, opt, pipe, load_iteration, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from):
     start_time=time.time()
     last_s1_res = []
